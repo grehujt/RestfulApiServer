@@ -15,6 +15,12 @@
 ### Features
 > TODO
 
+### Project files
+
+- [server_para_tuning.sh](./server_para_tuning.sh): Basic TCP & OS kernel parameters tunings.
+
+- [setup_base_env.sh](./setup_base_env.sh): Setup the basic docker host environment and install ELK contains.
+
 ### Setup
 > TODO
 
