@@ -21,6 +21,10 @@
 
 - [setup_base_env.sh](./setup_base_env.sh): Setup the basic docker host environment and install ELK contains.
 
+- [mariadb.cnf](./mariadb.cnf): the conf file for mariadb
+
+- [redis.conf](./redis.conf): the conf file for redis
+
 ### Setup
 > TODO
 
