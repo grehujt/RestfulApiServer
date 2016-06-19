@@ -1,5 +1,8 @@
 # Restful Api Server
 
+### Overview
+![overview](./pics/overview.png)
+
 ### Components
 - docker: virtualization and isolation
 - Nginx (Openresty) docker container: https web server, load balancer
@@ -8,9 +11,6 @@
 - ELK docker containers: aggregate & analyze dockers' log
 - monit: process monitor
 - fail2ban
-
-### Overview
-> TODO
 
 ### Features
 > TODO
@@ -21,9 +21,13 @@
 
 - [setup_base_env.sh](./setup_base_env.sh): Setup the basic docker host environment and install ELK contains.
 
-- [mariadb.cnf](./mariadb.cnf): the conf file for mariadb
+- [mariadb.cnf](./mariadb.cnf): the conf file for mariadb.
 
-- [redis.conf](./redis.conf): the conf file for redis
+- [redis.conf](./redis.conf): the conf file for redis.
+
+- [ngx](./ngx): folder containing Dockerfile & confs for nginx container.
+
+    + Dockerfile: the dockerfile for building the openresty image.
 
 ### Setup
 > TODO
