@@ -7,3 +7,9 @@ pip install -U docker-compose
 
 git clone https://github.com/deviantony/docker-elk.git
 docker-compose -f docker-elk/docker-compose.yml up -d
+
+/etc/init.d/monit stop
+chmod 0600 monitrc
+mv monitrc /etc/monit/monitrc
+mv monit.conf /etc/init
+start monit

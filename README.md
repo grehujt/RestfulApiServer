@@ -29,6 +29,10 @@
 
     + Dockerfile: the dockerfile for building the openresty image.
 
+- [monit.conf](./monit.conf): systemd minit conf file.
+
+- [monitrc](./monitrc): monit monitoring conf file.
+
 ### Setup
 > TODO
 
