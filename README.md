@@ -27,7 +27,11 @@
 
 - [ngx](./ngx): folder containing Dockerfile & confs for nginx container.
 
-    + Dockerfile: the dockerfile for building the openresty image.
+    + [Dockerfile](./ngx/Dockerfile): the dockerfile for building the openresty image.
+
+    + [nginx.conf](./ngx/nginx.conf): the nginx conf file.
+
+    + [loc.basic.conf](./ngx/loc.basic.conf): some test locations for nginx.
 
 - [monit.conf](./monit.conf): systemd minit conf file.
 
