@@ -29,9 +29,15 @@
 
     + [Dockerfile](./ngx/Dockerfile): the dockerfile for building the openresty image.
 
-    + [nginx.conf](./ngx/nginx.conf): the nginx conf file.
+    + [conf](./conf): containing the conf files
 
-    + [loc.basic.conf](./ngx/loc.basic.conf): some test locations for nginx.
+        * [nginx.conf](./ngx/nginx.conf): the nginx conf file.
+
+        * [loc.basic.conf](./ngx/loc.basic.conf): some test locations for nginx.
+
+        * [loc.cache.conf](./ngx/loc.cache.conf): internal cache locations.
+
+        * [basic.cache.conf](./ngx/basic.cache.conf): shortcuts to get/put data from/to cache.
 
 - [monit.conf](./monit.conf): systemd minit conf file.
 
