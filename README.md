@@ -37,6 +37,7 @@
         * [handle_tables_with_ids.lua](./ngx/lua/handle_tables_with_ids.lua): handles the table quert request with ids (more than 1 id).
         * [init.lua](./ngx/lua/init.lua): init script
         * [lbs.lua](./ngx/lua/lbs.lua): mysql connection pool and midware for mysql operations.
+- [docker-lbs.yml](./docker-lbs.yml): docker-compose yml file
 - [monit.conf](./monit.conf): systemd minit conf file.
 - [monitrc](./monitrc): monit monitoring conf file.
 
