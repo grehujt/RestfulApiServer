@@ -23,11 +23,20 @@
 - [redis.conf](./redis.conf): the conf file for redis.
 - [ngx](./ngx): folder containing Dockerfile & confs for nginx container.
     + [Dockerfile](./ngx/Dockerfile): the dockerfile for building the openresty image.
-    + [conf](./ngx/conf): containing the conf files
+    + [conf](./ngx/conf): containing the conf files.
         * [nginx.conf](./ngx/conf/nginx.conf): the nginx conf file.
         * [loc.basic.conf](./ngx/conf/loc.basic.conf): some test locations for nginx.
         * [loc.cache.conf](./ngx/conf/loc.cache.conf): internal cache locations.
         * [basic.cache.conf](./ngx/conf/basic.cache.conf): shortcuts to get/put data from/to cache.
+        * [loc.rest.conf](./ngx/conf/loc.rest.conf): some restful api locations
+    + [lua](./ngx/lua): containing the lua scripts.
+        * [dbinfo.lua](./ngx/lua/dbinfo.lua): module that defines the user account and related access patterns.
+        * [check.all.lua](./ngx/lua/check.all.lua): checks if coming requests are legal based on the policies defined in dbinfo.lua.
+        * [handle_tables.lua](./ngx/lua/handle_tables.lua): handles the (whole)table query requests.
+        * [handle_tables_with_id.lua](./ngx/lua/handle_tables_with_id.lua): handles the table quert request with id.
+        * [handle_tables_with_ids.lua](./ngx/lua/handle_tables_with_ids.lua): handles the table quert request with ids (more than 1 id).
+        * [init.lua](./ngx/lua/init.lua): init script
+        * [lbs.lua](./ngx/lua/lbs.lua): mysql connection pool and midware for mysql operations.
 - [monit.conf](./monit.conf): systemd minit conf file.
 - [monitrc](./monitrc): monit monitoring conf file.
 
