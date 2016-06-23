@@ -3,14 +3,13 @@
 ### Overview
 ![overview](./pics/overview.png)
 
-### Components
+### Main Components
 - docker: virtualization and isolation
 - Nginx (Openresty) docker container: https web server, load balancer
 - Redis docker container: cache
 - MariaDB docker container: database
 - ELK docker containers: aggregate & analyze dockers' log
-- monit: process monitor
-- fail2ban
+- monit: process monitors
 
 ### Features
 > TODO
