@@ -28,6 +28,7 @@
         * [loc.cache.conf](./ngx/conf/loc.cache.conf): internal cache locations.
         * [basic.cache.conf](./ngx/conf/basic.cache.conf): shortcuts to get/put data from/to cache.
         * [loc.rest.conf](./ngx/conf/loc.rest.conf): some restful api locations
+        * [loc.rest.cors.conf](./ngx/conf/loc.rest.cors.conf): restful api locations with CORS support
     + [lua](./ngx/lua): containing the lua scripts.
         * [dbinfo.lua](./ngx/lua/dbinfo.lua): module that defines the user account and related access patterns.
         * [check.all.lua](./ngx/lua/check.all.lua): checks if coming requests are legal based on the policies defined in dbinfo.lua.
