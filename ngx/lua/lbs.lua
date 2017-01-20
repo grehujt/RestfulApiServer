@@ -8,13 +8,9 @@ local M = { _VERSION = "1.0.1" }
 local function _get_conn()
     local mysql = require("resty.mysql")
     local client, errmsg = mysql:new()
-    client:set_timeout(10000) --10s connection timeout
+    client:set_timeout(10000) -- 10s connection timeout
     local ok, err, errno, sqlstate
-    if ngx.ctx.auth then
-        ok, err, errno, sqlstate = client:connect(dbInfo.mysqlconn)
-    else
-        ok, err, errno, sqlstate = client:connect(dbInfo.mysqlconn_ro)
-    end
+    ok, err, errno, sqlstate = client:connect(dbInfo.mysqlconn)
     if not ok then
         ngx.log(ngx.ERR, "failed to connect: ", err, ": ", errno, " ", sqlstate)
         return ngx.exit(500)
@@ -40,9 +36,8 @@ local function _query(sql)
         ngx.log(ngx.ERR, "bad result #1: ", err, ": ", errno, ": ", sqlstate, ".")
         return ngx.exit(500)
     end
-    -- times, err = client:get_reused_times()
-    -- ngx.say("reused ",times,"times")
-    ngx.print(encode(res),"\r\n")
+    result = encode(res)
+    -- ngx.print(encode(res))
     local i = 2
     while err == "again" do
         res, err, errno, sqlstate = client:read_result()
@@ -50,8 +45,14 @@ local function _query(sql)
             ngx.log(ngx.ERR, "bad result #", i, ": ", err, ": ", errno, ": ", sqlstate, ".")
             return ngx.exit(500)
         end
-        ngx.print(encode(res),"\r\n")
+        -- ngx.print(encode(res))
+        result = result..', '..encode(res)
         i = i + 1
+    end
+    if i == 2 then
+        ngx.print(result)
+    else
+        ngx.print('['..result..']')
     end
     _close()
 end
@@ -136,7 +137,5 @@ function M.bulk_delete(self,dbName,tbl,args)
     end
     self:delete(dbName,tbl,'_id in ('..table.concat(tmp1,",")..');')
 end
-
-------------------------------------------------
 
 return M

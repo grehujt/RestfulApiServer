@@ -1,0 +1,30 @@
+version: '2'
+
+services:
+  nginx:
+    image: openresty/openresty:centos
+    network_mode: host
+    volumes:
+      - ./ngx/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf
+      - ./ngx/cert.pem:/usr/local/openresty/nginx/conf/cert.pem
+      - ./ngx/key.pem:/usr/local/openresty/nginx/conf/key.pem
+      - ./ngx/userauth:/usr/local/openresty/nginx/conf/userauth
+      - ./ngx/locs:/usr/local/openresty/nginx/conf/locs
+      - ./ngx/lua:/usr/local/openresty/nginx/lua
+      - /root/html_root:/usr/local/openresty/nginx/html
+    restart: always
+    depends_on:
+      - mariadb
+
+  mariadb:
+    image: mariadb
+    network_mode: host
+    volumes:
+      - ./db/maria.tuned.cnf:/etc/mysql/conf.d/maria.tuned.cnf
+      - /root/mariadb:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=lbs_demo_site
+      - MYSQL_USER=lbsuser              # make sure sync with ngx/lua/dbinfo.lua
+      - MYSQL_PASSWORD=20lbsuserpass17  # make sure sync with ngx/lua/dbinfo.lua
+      - MYSQL_ROOT_PASSWORD=20rootpass17 # make sure sync with init.sh
+    restart: always

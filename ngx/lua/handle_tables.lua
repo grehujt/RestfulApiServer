@@ -32,7 +32,7 @@ if method == "GET" then
     if #limit>0 then
         where = where.." "..limit
     end
-    lbs:select(ngx.var.db,ngx.var.table,proj,where)
+    lbs:select("lbs_"..ngx.var.db,ngx.var.table,proj,where)
 else
     local args = ngx.ctx['body']
     if args==nil then
@@ -56,7 +56,7 @@ else
             -- ngx.say("POST invalid: no para")
             return ngx.exit(500)
         end
-        lbs:insert(ngx.var.db,ngx.var.table,tmp1,tmp2)
+        lbs:insert("lbs_"..ngx.var.db,ngx.var.table,tmp1,tmp2)
     elseif method == "PUT" then
         local tmp1 = {}
         local tmp2 = {}
@@ -74,7 +74,7 @@ else
             -- ngx.say("PUT invalid: no para")
             return ngx.exit(500)
         end
-        lbs:upsert(ngx.var.db,ngx.var.table,tmp1,tmp2,tmp3)
+        lbs:upsert("lbs_"..ngx.var.db,ngx.var.table,tmp1,tmp2,tmp3)
     end
 end
 

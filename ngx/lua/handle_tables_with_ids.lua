@@ -14,6 +14,10 @@ if ngx.req.get_method() == "GET" then
             return ngx.exit(500)
         end
     end
-    lbs:select(ngx.var.db,ngx.var.table,proj,"_id in ("..ngx.var.ids .. ")")
+    local tmp = {}
+    for id in string.gmatch(ngx.var.ids, '([^,]+)') do
+        table.insert(tmp, ngx.quote_sql_str(id))
+    end
+    lbs:select("lbs_"..ngx.var.db,ngx.var.table,proj,"_id in (".. table.concat(tmp,",") .. ")")
 end
 

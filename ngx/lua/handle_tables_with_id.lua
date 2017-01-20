@@ -26,8 +26,8 @@ if method == "GET" then
             return ngx.exit(500)
         end
     end
-    lbs:select(ngx.var.db,ngx.var.table,proj,cnd)
-else
+    lbs:select("lbs_"..ngx.var.db,ngx.var.table,proj,cnd)
+elseif method == "PATCH" then
     local args = ngx.ctx['body']
     if args==nil then
         local decode = decode
@@ -36,23 +36,20 @@ else
         args = decode(tmp)
     end
     if not args then return end
-
-    if method == "PATCH" then
-        local tmp = {}
-        local idx = 1
-        for key,value in pairs(args) do
-            if key~="auth" and key~="ver" then
-                tmp[idx] = key.."="..ngx.quote_sql_str(value)
-                idx = idx+1
-            end
+    local tmp = {}
+    local idx = 1
+    for key,value in pairs(args) do
+        if key~="auth" and key~="ver" then
+            tmp[idx] = key.."="..ngx.quote_sql_str(value)
+            idx = idx+1
         end
-        if #tmp==0 then
-            ngx.say("PATCH invalid: no para")
-            return
-        end
-        lbs:update(ngx.var.db,ngx.var.table,tmp,cnd)
-    elseif method == "DELETE" then
-        lbs:delete(ngx.var.db,ngx.var.table,cnd)
     end
+    if #tmp==0 then
+        ngx.say("PATCH invalid: no para")
+        return
+    end
+    lbs:update("lbs_"..ngx.var.db,ngx.var.table,tmp,cnd)
+elseif method == "DELETE" then
+    lbs:delete("lbs_"..ngx.var.db,ngx.var.table,cnd)
 end
 

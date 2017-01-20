@@ -1,0 +1,10 @@
+[mysqld]
+server-id=1
+port=3306
+bind_address=127.0.0.1
+
+back_log=300
+thread_handling=pool-of-threads
+thread_cache_size=100
+innodb_buffer_pool_size=1G
+aria_pagecache_buffer_size=256M

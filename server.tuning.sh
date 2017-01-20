@@ -243,4 +243,3 @@ IFS=$SAVEIFS
 
 /sbin/sysctl -p /etc/sysctl.conf
 exit $?
-
