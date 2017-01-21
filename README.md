@@ -1,48 +1,123 @@
 # Restful Api Server
 
-### Overview
-![overview](./pics/overview.png)
+## Overview
+![overview](./pics/overview2.png)
+- Nginx: the web server & RESTful API server powered by Openresty.
+- MariaDB: the database server.
 
-### Main Components
-- docker: virtualization and isolation
-- Nginx (Openresty) docker container: https web server, load balancer
-- Redis docker container: cache
-- MariaDB docker container: database
-- ELK docker containers: aggregate & analyze dockers' log
-- monit: process monitors
+## Project File Structure
+- [db](./db): contains the db-related files
+    + [maria.tuned.cnf](./db/maria.tuned.cnf): tuned mariadb conf file
+- [ngx](./ngx): contains the nginx-related files
+    + [locs](./ngx/locs): contains the nginx locations conf files
+        * [basic.cors.conf](./ngx/locs/basic.cors.conf): CORS-related conf
+        * [loc.rest.cors.conf](./ngx/locs/loc.rest.cors.conf): defines the RESTful apis
+    + [lua](./ngx/lua): contains the lua scripts
+        * [dbinfo.lua](./ngx/lua/dbinfo.lua), database info
+        * [handle_bulk_writes.lua](./ngx/lua/handle_bulk_writes.lua), supports bulk operations
+        * [handle_tables.lua](./ngx/lua/handle_tables.lua), supports table level operations
+        * [handle_tables_with_id.lua](./ngx/lua/handle_tables_with_id.lua), supports single entry level operations
+        * [handle_tables_with_ids.lua](./ngx/lua/handle_tables_with_ids.lua), supports multi entry level operations
+        * [init.lua](./ngx/lua/init.lua), the init script
+        * [lbs.lua](./ngx/lua/lbs.lua), the database wrapper
+    + [nginx.conf](./ngx/nginx.conf): the nginx conf file
+    + [userauth](./ngx/userauth): the htpassword file for http basic authentication
+- [demo_site.sql](./demo_site.sql): demo site table structure
+- [docker-compose.yml](docker-compose.yml): docker compose file
+- [init.sh](./init.sh): setups the whole back-end environment
+- [rc.local](./rc.local): disables the transparent_hugepage
+- [server.tuning.sh](./server.tuning.sh): server performance tuning script
 
-### Features
-> TODO
+## Deployment
+- OS: 64-bit ubuntu 14.04 / 16.04 server
+- RAM: >= 8G
+- Port: 443, 3306
 
-### Project files
+```sh
+sudo su
+cd backend_deployment_demo
+chmod +x init.sh
+./init.sh
+# (the init.sh will reboot the server)
+```
 
-- [server_para_tuning.sh](./server_para_tuning.sh): Basic TCP & OS kernel parameters tunings.
-- [setup_base_env.sh](./setup_base_env.sh): Setup the basic docker host environment and install ELK contains.
-- [mariadb.cnf](./mariadb.cnf): the conf file for mariadb.
-- [redis.conf](./redis.conf): the conf file for redis.
-- [ngx](./ngx): folder containing Dockerfile & confs for nginx container.
-    + [Dockerfile](./ngx/Dockerfile): the dockerfile for building the openresty image.
-    + [conf](./ngx/conf): containing the conf files.
-        * [nginx.conf](./ngx/conf/nginx.conf): the nginx conf file.
-        * [loc.basic.conf](./ngx/conf/loc.basic.conf): some test locations for nginx.
-        * [loc.cache.conf](./ngx/conf/loc.cache.conf): internal cache locations.
-        * [basic.cache.conf](./ngx/conf/basic.cache.conf): shortcuts to get/put data from/to cache.
-        * [loc.rest.conf](./ngx/conf/loc.rest.conf): some restful api locations
-        * [loc.rest.cors.conf](./ngx/conf/loc.rest.cors.conf): restful api locations with CORS support
-    + [lua](./ngx/lua): containing the lua scripts.
-        * [dbinfo.lua](./ngx/lua/dbinfo.lua): module that defines the user account and related access patterns.
-        * [check.all.lua](./ngx/lua/check.all.lua): checks if coming requests are legal based on the policies defined in dbinfo.lua.
-        * [handle_tables.lua](./ngx/lua/handle_tables.lua): handles the (whole)table query requests.
-        * [handle_tables_with_id.lua](./ngx/lua/handle_tables_with_id.lua): handles the table quert request with id.
-        * [handle_tables_with_ids.lua](./ngx/lua/handle_tables_with_ids.lua): handles the table quert request with ids (more than 1 id).
-        * [init.lua](./ngx/lua/init.lua): init script
-        * [lbs.lua](./ngx/lua/lbs.lua): mysql connection pool and midware for mysql operations.
-- [docker-lbs.yml](./docker-lbs.yml): docker-compose yml file
-- [monit.conf](./monit.conf): systemd minit conf file.
-- [monitrc](./monitrc): monit monitoring conf file.
+## RESTful API Spec
+- Read operations:
+    + /<db>/<table>: get all records from a table
+        * verb: GET
+        * output: JSON
+    + /<db>/<table>/<id>: get one record specified by <id> from a table
+        * verb: GET
+        * output: JSON
+    + /<db>/<table>/<id>,<id>,..: get multi records specified by <id> from a table
+        * verb: GET
+        * output: JSON
+- Write operations:
+    + /_bulk/<db>/<table>
+        * verb:
+            - DELETE: bulk delete operations
+            - PUT: bulk upsert operations
+        * need http basic authentication
+        * input: JSON
+        * output: JSON
+    + /_private/<db>/<table>
+        * verb:
+            - POST, create a new entry
+            - PUT, create a new entry if not exists, update otherwise
+        * need http basic authentication
+        * input: JSON
+        * output: JSON
+    + /_private/<db>/<table>/<id>
+        * verb:
+            - PATCH, update the entry
+            - DELETE, delete the entry
+        * need http basic authentication
+        * input: JSON
+        * output: JSON
 
-### Setup
-> TODO
+## Reminders
+- As the nginx serves https, a self-signed cert will be generated by init.sh, one can specify a valid cert in the docker-compose.yml as needed, then run the following commands to active the cert:
 
-### Production environment considerations
-> TODO
+```sh
+cd backend_deployment_demo
+sudo docker-compose restart backenddeploymentdemo_nginx_1
+```
+
+- the init.sh will create a demo db called 'lbs_demo_site' with some default tables
+- Default db root password is defined in docker-compose.yml
+- DB naming convention for security: db name prefix with 'lbs_' will exposed to user, for example:
+
+```sh
+curl -k https://localhost/demo_site/imgs
+# (the 'demo_site' will map to internal db 'lbs_demo_site')
+```
+
+- All write operations need http basic authentication, one can edit the userauth file to add/remove users, an easy way to generate the password would be http://www.htaccesstools.com/htpasswd-generator/.
+- One default user in the userauth: demoauthuser:20demoauthuser17
+
+## RESTful API examples
+```sh
+# (get all entries from lbs_demo_site.imgs)
+curl -k https://localhost/demo_site/imgs
+
+# (get one entry with id=3 from lbs_demo_site.imgs)
+curl -k https://localhost/demo_site/imgs/3
+
+# (get multi entries with ids=1,2,3,4 fromlbs_demo_site.imgs)
+curl -k https://localhost/demo_site/imgs/1,2,3,4
+
+# (insert one entry to lbs_demo_site.imgs, 'ZGVtb2F1dGh1c2VyOjIwZGVtb2F1dGh1c2VyMTc=' is base64 encoded version of 'demoauthuser:20demoauthuser17')
+curl -kXPOST -H"Authorization: Basic ZGVtb2F1dGh1c2VyOjIwZGVtb2F1dGh1c2VyMTc=" https://localhost/_private/demo_site/imgs -d'{"type":"png", "imPath":"1.png"}'
+
+# (update one entry with id=1 of lbs_demo_site.imgs)
+curl -kXPATCH -H"Authorization: Basic ZGVtb2F1dGh1c2VyOjIwZGVtb2F1dGh1c2VyMTc=" https://localhost/_private/demo_site/imgs/1 -d'{"type":"png", "imPath":"1.1.png"}'
+
+# (delete one enrty with id=1 of lbs_demo_site.imgs)
+curl -kXDELETE -H"Authorization: Basic ZGVtb2F1dGh1c2VyOjIwZGVtb2F1dGh1c2VyMTc=" https://localhost/_private/demo_site/imgs/1
+
+# (upsert multi entries with id=1,2 for lbs_demo_site.imgs)
+curl -kXPUT -H"Authorization: Basic ZGVtb2F1dGh1c2VyOjIwZGVtb2F1dGh1c2VyMTc=" https://localhost/_bulk/demo_site/imgs -d'[{"_id":1, "type":"png", "imPath":"1.png"}, {"_id":2, "type":"png", "imPath":"2.png"}]'
+
+# (delete multi entries with id=1,2 for lbs_demo_site.imgs)
+curl -kXDELETE -H"Authorization: Basic ZGVtb2F1dGh1c2VyOjIwZGVtb2F1dGh1c2VyMTc=" https://localhost/_bulk/demo_site/imgs -d'[1, 2]'
+```
