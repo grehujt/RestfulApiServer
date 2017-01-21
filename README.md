@@ -43,31 +43,31 @@ chmod +x init.sh
 
 ## RESTful API Spec
 - Read operations:
-    + /<db>/<table>: get all records from a table
+    + /{db}/{table}: get all records from a table
         * verb: GET
         * output: JSON
-    + /<db>/<table>/<id>: get one record specified by <id> from a table
+    + /{db}/{table}/{id}: get one record specified by {id} from a table
         * verb: GET
         * output: JSON
-    + /<db>/<table>/<id>,<id>,..: get multi records specified by <id> from a table
+    + /{db}/{table}/{id},{id},..: get multi records specified by {id} from a table
         * verb: GET
         * output: JSON
 - Write operations:
-    + /_bulk/<db>/<table>
+    + /_bulk/{db}/{table}
         * verb:
             - DELETE: bulk delete operations
             - PUT: bulk upsert operations
         * need http basic authentication
         * input: JSON
         * output: JSON
-    + /_private/<db>/<table>
+    + /_private/{db}/{table}
         * verb:
             - POST, create a new entry
             - PUT, create a new entry if not exists, update otherwise
         * need http basic authentication
         * input: JSON
         * output: JSON
-    + /_private/<db>/<table>/<id>
+    + /_private/{db}/{table}/{id}
         * verb:
             - PATCH, update the entry
             - DELETE, delete the entry
