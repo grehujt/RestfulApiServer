@@ -36,8 +36,8 @@ local function _query(sql)
         ngx.log(ngx.ERR, "bad result #1: ", err, ": ", errno, ": ", sqlstate, ".")
         return ngx.exit(500)
     end
-    result = encode(res)
-    -- ngx.print(encode(res))
+
+    local result = { [1] = encode(res) }
     local i = 2
     while err == "again" do
         res, err, errno, sqlstate = client:read_result()
@@ -45,14 +45,14 @@ local function _query(sql)
             ngx.log(ngx.ERR, "bad result #", i, ": ", err, ": ", errno, ": ", sqlstate, ".")
             return ngx.exit(500)
         end
-        -- ngx.print(encode(res))
-        result = result..', '..encode(res)
+        result[i] = encode(res)
         i = i + 1
     end
-    if i == 2 then
-        ngx.print(result)
+    local ret = table.concat(result, ',')
+    if string.byte(ret) == string.byte('[') then
+        ngx.print(ret)
     else
-        ngx.print('['..result..']')
+        ngx.print('['..ret..']')
     end
     _close()
 end
