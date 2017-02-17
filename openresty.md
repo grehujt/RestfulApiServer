@@ -98,3 +98,64 @@
         * 使用 lj-lua-stacks.sxx抓取栈信息,并用 fix-lua-bt 工具处理
         * 使用 stackcollapse-stap.pl 和 flamegraph.pl
     + 一般来说一个正常的火焰图看起来像一座座连绵起伏的“山峰”,而一个异常的火焰图看 起来像一座“平顶山”
+
+- ngx.location.capture_multi
+    + 利用 ngx.location.capture_multi 函数,直接完成了两个子请求并行执行。当两个请求没有 相互依赖,这种方法可以极大提高查询效率。
+    + 假设两个无依赖请求,各自是100ms,顺序执行需要200ms,但通过并行执行可以在100ms 完成两个请求。
+    
+```lua
+location = /sum {
+    internal;
+    content_by_lua_block {
+        ngx.sleep(0.1)
+        local args = ngx.req.get_uri_args()
+        ngx.print(tonumber(args.a) + tonumber(args.b))
+    }
+}
+
+location = /subduction {
+    internal;
+    content_by_lua_block {
+        ngx.sleep(0.1)
+        local args = ngx.req.get_uri_args()
+        ngx.print(tonumber(args.a) - tonumber(args.b))
+    }
+}
+
+location = /app/test_parallels {
+    content_by_lua_block {
+        local start_time = ngx.now()
+        local res1, res2 = ngx.location.capture_multi( {
+                        {"/sum", {args={a=3, b=8}}},
+                        {"/subduction", {args={a=3, b=8}}}
+                    })
+        ngx.say("status:", res1.status, " response:", res1.body)
+        ngx.say("status:", res2.status, " response:", res2.body)
+        ngx.say("time used:", ngx.now() - start_time)
+    }
+}
+
+location = /app/test_queue {
+    content_by_lua_block {
+        local start_time = ngx.now()
+        local res1 = ngx.location.capture_multi( {
+                        {"/sum", {args={a=3, b=8}}}
+                    })
+        local res2 = ngx.location.capture_multi( {
+                        {"/subduction", {args={a=3, b=8}}}
+                    })
+        ngx.say("status:", res1.status, " response:", res1.body)
+        ngx.say("status:", res2.status, " response:", res2.body)
+        ngx.say("time used:", ngx.now() - start_time)
+    }
+}
+```
+
+```sh
+➜ ~ curl 127.0.0.1/app/test_parallels status:200 response:11
+status:200 response:-5
+time used:0.10099983215332
+➜ ~ curl 127.0.0.1/app/test_queue status:200 response:11
+status:200 response:-5
+time used:0.20199990272522
+```
