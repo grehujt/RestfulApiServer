@@ -159,3 +159,38 @@ time used:0.10099983215332
 status:200 response:-5
 time used:0.20199990272522
 ```
+
+- ngx.req.read_body()
+```lua
+location /print_param {
+   content_by_lua_block {
+       local arg = ngx.req.get_uri_args()
+       for k,v in pairs(arg) do
+           ngx.say("[GET ] key:", k, " v:", v)
+       end
+    ngx.req.read_body() -- 解析 body 参数之前一定要先读取 body
+    local arg = ngx.req.get_post_args()
+    for k,v in pairs(arg) do
+                   ngx.say("[POST] key:", k, " v:", v)
+               end
+    }
+}
+```
+
+- ngx.encode_args()
+```lua
+location /test {
+    content_by_lua_block {
+        local res = ngx.location.capture(
+                 '/print_param',
+                {
+                    method = ngx.HTTP_POST,
+                    args = ngx.encode_args({a = 1, b = '2&'}),
+                    body = ngx.encode_args({c = 3, d = '4&'})
+                })
+        ngx.say(res.body)
+    }
+}
+```
+
+- ngx.req.get_body_data() 读请求体,会偶尔出现读取不到直接返回 nil 的情况, 如果请求体尚未被读取,请先调用 ngx.req.read_body (或打开 lua_need_request_body 选项 强制本模块读取请求体,此方法不推荐)。如需要强制在内存中保存请求体,请设置 client_body_buffer_size 和 client_max_body_size 为同样大小。
