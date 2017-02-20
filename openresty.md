@@ -194,3 +194,51 @@ location /test {
 ```
 
 - ngx.req.get_body_data() 读请求体,会偶尔出现读取不到直接返回 nil 的情况, 如果请求体尚未被读取,请先调用 ngx.req.read_body (或打开 lua_need_request_body 选项 强制本模块读取请求体,此方法不推荐)。如需要强制在内存中保存请求体,请设置 client_body_buffer_size 和 client_max_body_size 为同样大小。
+
+- ngx.say 与 ngx.print 均为异步输出
+```lua
+server {
+    listen    80;
+    location /test {
+        content_by_lua_block {
+            ngx.say("hello")
+            ngx.sleep(3)
+            ngx.say("the world")
+        } 
+    }
+    location /test2 {
+        content_by_lua_block {
+            ngx.say("hello")
+            ngx.flush() -- 显式的向客户端刷新响应输出 ngx.sleep(3)
+            ngx.say("the world")
+        }
+    }
+}
+```
+
+    + 测试接口可以观察到, /test响应内容实在触发请求3s后一起接收到响应体
+    + /test2 则是先收到一个 hello 停顿 3s 后又接收到后面的 the world
+
+- 利用HTTP1.1特性CHUNKED编码来完成响应体过大的输出
+```lua
+location /test {
+    content_by_lua_block {
+        -- ngx.var.limit_rate = 1024*1024
+        local file, err = io.open(ngx.config.prefix() .. "data.db","r")
+        if not file then
+            ngx.log(ngx.ERR, "open file error:", err)
+            ngx.exit(ngx.HTTP_SERVICE_UNAVAILABLE)
+        end
+        local data
+        while true do
+            data = file:read(1024)
+            if nil == data then break end
+            ngx.print(data)
+            ngx.flush(true)
+        end
+        file:close()
+    }
+}
+```
+
+- ngx.print,它的输入参数可以是单个或多个字符串参数,也可以是table对象
