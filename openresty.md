@@ -242,3 +242,57 @@ location /test {
 ```
 
 - ngx.print,它的输入参数可以是单个或多个字符串参数,也可以是table对象
+
+- ngx.log
+    + ngx.log(log_level, msg)
+    + ngx.STDERR  -- 标准输出
+    + ngx.EMERG  -- 紧急报错
+    + ngx.ALERT  -- 报警
+    + ngx.CRIT  -- 严重,系统故障,触发运维告警系统
+    + ngx.ERR  -- 错误,业务不可恢复性错误
+    + ngx.WARN  -- 警告,业务中可忽略错误
+    + ngx.NOTICE  -- 提醒,业务比较重要信息
+    + ngx.INFO  -- 信息,业务琐碎日志信息,包含不同情况判断等
+    + ngx.DEBUG  -- 调试
+
+- lua-resty-logger-socket 
+    + lua-resty-logger-socket 的目标是替代Nginx标准的 ngx_http_log_module 以非阻塞IO 方式推送access log到远程服务器上
+    + 对远程服务器的要求是支持 syslog-ng 的日志服务
+    + 基于 cosocket 非阻塞 IO 实现
+    + 日志累计到一定量,集体提交,增加网络传输利用率
+    + 短时间的网络抖动,自动容错
+    + 日志累计到一定量,如果没有传输完毕,直接丢弃
+    + 日志传输过程完全不落地,没有任何磁盘 IO 消耗
+
+```lua
+server {
+    location / {
+        log_by_lua '
+            local logger = require "resty.logger.socket"
+            if not logger.initted() then
+                local ok, err = logger.init{
+                    host = 'xxx',
+                    port = 1234,
+                    flush_limit = 1234,
+                    drop_limit = 5678,
+                }
+                if not ok then
+                    ngx.log(ngx.ERR, "failed to initialize the logger: ",
+                            err)
+                return end
+            end
+            -- construct the custom access log message in
+            -- the Lua variable "msg"
+            local bytes, err = logger.log(msg)
+            if err then
+                ngx.log(ngx.ERR, "failed to log message: ", err)
+            return end
+        ';
+    }
+}
+```
+
+ 
+
+
+ 
