@@ -292,7 +292,55 @@ server {
 }
 ```
 
- 
+- simple blacklist
+```lua
+access_by_lua_block {
+    local black_ips = {["127.0.0.1"]=true}
+    local ip = ngx.var.remote_addr
+    if true == black_ips[ip] then
+        ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+};
+```
 
+- limit_rate
+    + 能完成传输速率限制,并且它的影响是单个请求级别
 
- 
+```lua
+location /download {
+    access_by_lua_block {
+        ngx.var.limit_rate = 1000
+    };
+}
+```
+
+- ngx.location.capture & ngx.location.capture_multi 
+    + 可以发起非阻塞的内部请求访问目标 location
+    + 子请求只是模拟 HTTP 接口的形式, 没有额外的 HTTP/TCP 流量,也没有 IPC (进程间通信) 调用
+    + 所有工作在内部高效地在 C 语言级别完成
+    + 总是缓冲整个请求体到内存中。因此,当需要处理一个大的子请求响应,用户程序应使用 cosockets 进行流式处理
+    + 默认继承当前请求的所有请求头信息, 通过设置 proxy_pass_request_headers 为 off ,在子请求 location 中忽略原始请求头
+    + 子请求不允许类似 @foo 命名 location。请使用标准 location,并设置 internal 指令,仅服务内部请求
+    + 无法抓取包含以下指令的 location: 
+        * add_before_body
+        * add_after_body
+        * auth_request
+        * echo_location
+        * echo_location_async
+        * echo_subrequest
+        * echo_subrequest_async
+
+```lua
+res = ngx.location.capture(uri)
+-- 返回一个包含四个元素的 Lua 表 ( res.status, res.header, res.body 和 res.truncated)
+
+res = ngx.location.capture(
+    '/foo/bar',
+    { method = ngx.HTTP_POST, body = 'hello, world' }
+)
+
+ngx.location.capture('/foo?a=1',
+    { args = { b = 3, c = ':' } }
+)
+```
+
