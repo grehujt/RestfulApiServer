@@ -344,3 +344,12 @@ ngx.location.capture('/foo?a=1',
 )
 ```
 
+- 不同阶段共享变量: ngx.ctx 表
+    + 单个请求内的 rewrite (重写),access (访问),和 content (内容) 等各处理阶段是保持一致的
+    + 每个请求,包括子请求,都有一份自己的 ngx.ctx 表
+    + ngx.ctx 表查询需要相对昂贵的元方法调用,这比通过用户自己的函数参数直接传递基于请求的数据要慢得多
+    + 不要为了节约用户函数参数而滥用此 API,因为它可能对性能有明显影响
+
+- 防止 SQL 注入
+    + MySQL,调用 ndk.set_var.set_quote_sql_str
+    + PostgreSQL,调用 ndk.set_var.set_quote_pgsql_str
