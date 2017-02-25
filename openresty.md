@@ -353,3 +353,90 @@ ngx.location.capture('/foo?a=1',
 - 防止 SQL 注入
     + MySQL,调用 ndk.set_var.set_quote_sql_str
     + PostgreSQL,调用 ndk.set_var.set_quote_pgsql_str
+
+- 高效的与其他 HTTP Server 调用
+    + ngx.location.capture + proxy_pass
+    
+    ```
+    server {
+        listen    80;
+        location /test {
+            content_by_lua_block {
+                ngx.req.read_body()
+                local args, err = ngx.req.get_uri_args()
+                local res = ngx.location.capture('/spe_md5',
+                {
+                    method = ngx.HTTP_POST,
+                    body = args.data
+                })
+                if 200 ~= res.status then
+                    ngx.exit(res.status)
+                end
+                if args.key == res.body then
+                    ngx.say("valid request")
+                else
+                    ngx.say("invalid request")
+                end
+            }
+        }
+        location /spe_md5 {
+            proxy_pass http://md5_server;
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+        }
+    }
+
+    server {
+        listen 81;
+        location /spe_md5 {
+            content_by_lua_block {
+                ngx.req.read_body()
+                local data = ngx.req.get_body_data()
+                ngx.print(ngx.md5(data .. "*&^%$#$^&kjtrKUYG"))
+            }
+        }
+    }
+    ```
+    + cosocket
+    
+    ```lua
+    http {
+        server {
+            listen 80;
+            location /test {
+                content_by_lua_block {
+                    ngx.req.read_body()
+                    local args, err = ngx.req.get_uri_args()
+                    local http = require "resty.http" -- 1 local httpc = http.new()
+                    local res, err = httpc:request_uri( -- 2
+                        "http://127.0.0.1:81/spe_md5",
+                            {
+                            method = "POST",
+                            body = args.data,
+                          })
+                    if 200 ~= res.status then
+                        ngx.exit(res.status)
+                    end
+                    if args.key == res.body then
+                        ngx.say("valid request")
+                    else
+                        ngx.say("invalid request")
+                    end
+                }
+            }
+        }
+
+        server {
+            listen    81;
+            location /spe_md5 {
+                content_by_lua_block {
+                    ngx.req.read_body()
+                    local data = ngx.req.get_body_data()
+                    ngx.print(ngx.md5(data .. "*&^%$#$^&kjtrKUYG"))
+                }
+            }
+        }
+    }
+    ```
+    + 如果你的内部请求比较少,使用 ngx.location.capture + proxy_pass 的方式还没什么问题
+    + 如果你的请求数量比较多,或者需要频繁的修改上游地址,那么 resty.http 就更适合你
