@@ -486,3 +486,35 @@ server {
 }
 ```
 
+- cjson.safe
+    + 该接口兼容 cjson 模块,并且在解析错误时不抛出异常,而是返回 nil 
+```lua
+local json = require("cjson.safe")
+local str  = [[ {"key:"value"} ]]
+local t    = json.decode(str)
+if t then
+    ngx.say(" --> ", type(t))
+end
+```
+
+- cjson handles empty
+```lua
+-- 内容节选lua-cjson-2.1.0.2/tests/agentzh.t
+=== TEST 1: empty tables as objects
+--- lua
+local cjson = require "cjson"
+print(cjson.encode({}))
+print(cjson.encode({dogs = {}}))
+--- out
+{}
+{"dogs":{}}
+=== TEST 2: empty tables as arrays
+--- lua
+local cjson = require "cjson"
+cjson.encode_empty_table_as_object(false)
+print(cjson.encode({}))
+print(cjson.encode({dogs = {}}))
+--- out
+[]
+{"dogs":[]}
+```
