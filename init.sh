@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-apt-get update && apt-get install -y python-pip curl mariadb-client openssl bc
+apt-get update && apt-get install -y --no-install-recommends python-pip curl mariadb-client openssl bc
 curl -sSL https://get.docker.com | sudo sh
 pip install -U docker-compose
 

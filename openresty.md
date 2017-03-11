@@ -1,4 +1,6 @@
 
+[ref](https://www.gitbook.com/book/moonbingbing/openresty-best-practices/details)
+
 - 缓存失效风暴(dog-pile effect)
     + 发现缓存失效后,加一把锁来控制数据库的请求
     + [lua-resty-lock](https://github.com/openresty/lua-resty-lock#for-cache-locks)
@@ -488,6 +490,7 @@ server {
 
 - redis pipeline
     + pipeline 机制将多个命令汇聚到一个请求中,可以有效减少请求数量,减少网络延时
+    + 正确使用 pipeline 对性能的提升十分明显
 
 ```lua
 server {
@@ -564,6 +567,51 @@ server {
                 ngx.say("failed to set keepalive: ", err)
                 return
             end
+        }
+    }
+}
+```
+
+- 从pipeline,我们知道对于多个简单的 Redis 命令可以汇聚到一个请求中,提升服务端的并发能力。然而,在有些场景下,我们每次命令的输入需要引用上个命令的输出,甚至可能还要对第一个命令的输出做一些加工,再把加工结果当成第二个命令的输入。pipeline 难以处 理这样的场景。庆幸的是,我们可以用Redis 里的 script 来压缩这些复杂命令, 核心思想是在 Redis 命令里嵌入 Lua脚本,来实现一些复杂操作:
+```lua
+server {
+    location /usescript {
+        content_by_lua_block {
+            local redis = require "resty.redis"
+            local red = redis:new()
+            red:set_timeout(1000) -- 1 sec
+            -- or connect to a unix domain socket file listened
+            -- by a redis server:
+            --     local ok, err = red:connect("unix:/path/to/redis.sock")
+            local ok, err = red:connect("127.0.0.1", 6379)
+            if not ok then
+                ngx.say("failed to connect: ", err)
+            return end
+            --- use scripts in eval cmd
+            local id = "1"
+            ok, err = red:eval([[
+                local info = redis.call('get', KEYS[1])
+                info = json.decode(info)
+                local g_id = info.gid
+                local g_info = redis.call('get', g_id)
+                return g_info
+                ]], 1, id)
+            if not ok then
+               ngx.say("failed to get the group info: ", err)
+               return
+            end
+            -- put it into the connection pool of size 100,
+            -- with 10 seconds max idle time
+            local ok, err = red:set_keepalive(10000, 100)
+            if not ok then
+                ngx.say("failed to set keepalive: ", err)
+            return end
+            -- or just close the connection right away:
+            -- local ok, err = red:close()
+            -- if not ok then
+            --     ngx.say("failed to close: ", err)
+            --     return
+            -- end
         }
     }
 }
