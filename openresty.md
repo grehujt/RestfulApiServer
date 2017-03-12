@@ -649,3 +649,13 @@ print(cjson.encode({dogs = {}}))
 []
 {"dogs":[]}
 ```
+
+- lua sparse table
+```lua
+local json = require("cjson")
+local data = {1, 2}
+data[1000] = 99
+-- ... do the other things
+ngx.say(json.encode(data)) -- exception!!
+```
+如果把 data 的数组下标修改成5,那么这个 json.encode 就会是成功的。 结果是:[1, 2,null, null, 99], 为什么下标是1000就失败呢?实际上这么做是cjson想保护你的内存资源。她担心这个下标 过大直接撑爆内存(贴心小棉袄啊)。如果我们一定要让这种情况下可以 encode,就要尝试 **encode_sparse_array** api 了。
