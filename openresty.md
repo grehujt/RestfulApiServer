@@ -659,3 +659,42 @@ data[1000] = 99
 ngx.say(json.encode(data)) -- exception!!
 ```
 如果把 data 的数组下标修改成5,那么这个 json.encode 就会是成功的。 结果是:[1, 2,null, null, 99], 为什么下标是1000就失败呢?实际上这么做是cjson想保护你的内存资源。她担心这个下标 过大直接撑爆内存(贴心小棉袄啊)。如果我们一定要让这种情况下可以 encode,就要尝试 **encode_sparse_array** api 了。
+
+- ngx_postgres 模块使用方法
+```
+upstream pg_server {
+    postgres_server 192.168.1.2:5432 dbname=pg_database user=postgres password=postgres;
+    postgres_keepalive max=800 mode=single overflow=reject;
+}
+
+location /postgres {
+    internal;
+    default_type text/html;
+    set_by_lua $query_sql 'return ngx.unescape_uri(ngx.var.arg_sql)';
+    postgres_pass   pg_server;
+    rds_json          on;
+    rds_json_buffer_size 16k;
+    postgres_query  $query_sql;
+    postgres_connect_timeout 1s;
+    postgres_result_timeout 2s;
+}
+```
+
+```lua
+local json = require "cjson"
+function test()
+    local res = ngx.location.capture('/postgres',
+        { args = {sql = "SELECT * FROM test" } }
+    )
+    local status = res.status
+    local body = json.decode(res.body)
+    if status == 200 then
+        status = true
+    else
+        status = false
+    end
+    return status, body
+end
+```
+
+警示,能转到 lua-resty- 这个方向的,就千万不要和 ngx_c_module玩, ngx_c_module的扩展性、可维护性、升级等各方面都没有 lua-resty- 好
