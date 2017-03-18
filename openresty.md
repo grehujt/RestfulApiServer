@@ -698,3 +698,30 @@ end
 ```
 
 警示,能转到 lua-resty- 这个方向的,就千万不要和 ngx_c_module玩, ngx_c_module的扩展性、可维护性、升级等各方面都没有 lua-resty- 好
+
+WRONG example:
+```lua
+    local json = require "cjson"
+    function db_exec(sql_str)
+        local res = ngx.location.capture('/postgres',
+            { args = {sql = sql_str } }
+        )
+        local status = res.status
+        local body = json.decode(res.body)
+        if status == 200 then
+            status = true
+        else
+            status = false
+        end
+        return status, body
+    end
+-- 转账操作,对ID=100的用户加10,同时对ID=200的用户减10。
+?    local status
+?    status = db_exec("BEGIN")
+?    ...
+?    db_exec("COMMIT")
+```
+- 数据库的事物成功执行,事物相关的所有操作是必须执行在一条连接上的
+- 高并发下这个事物的每个 SQL 语句都可能落在不同的连接上, 因为通过 ngx.location.capture 跳转到 /postgres 小节后 Nginx 每次都会从连接池中挑选一条空闲连接,而当时哪条连接是空闲的,完全没法预估。
+- 同样的道理,我们推理到 DrizzleNginxModule、RedisNginxModule、Redis2NginxModule ,他们都是无法做到在两次连续请求落到同一个连接上的
+- 生产中最好用 lua-resty-* 这类的库
