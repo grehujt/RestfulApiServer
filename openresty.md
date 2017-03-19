@@ -725,3 +725,46 @@ WRONG example:
 - 高并发下这个事物的每个 SQL 语句都可能落在不同的连接上, 因为通过 ngx.location.capture 跳转到 /postgres 小节后 Nginx 每次都会从连接池中挑选一条空闲连接,而当时哪条连接是空闲的,完全没法预估。
 - 同样的道理,我们推理到 DrizzleNginxModule、RedisNginxModule、Redis2NginxModule ,他们都是无法做到在两次连续请求落到同一个连接上的
 - 生产中最好用 lua-resty-* 这类的库
+
+- Openresty 执行阶段
+```lua
+location /mixed {
+    set_by_lua $a 'ngx.log(ngx.ERR, "set_by_lua")';
+    rewrite_by_lua 'ngx.log(ngx.ERR, "rewrite_by_lua")'; 
+    access_by_lua 'ngx.log(ngx.ERR, "access_by_lua")'; 
+    header_filter_by_lua 'ngx.log(ngx.ERR, "header_filter_by_lua")'; body_filter_by_lua 'ngx.log(ngx.ERR, "body_filter_by_lua")';
+    log_by_lua 'ngx.log(ngx.ERR, "log_by_lua")';
+    content_by_lua 'ngx.log(ngx.ERR, "content_by_lua")';
+}
+
+-- logs:
+set_by_lua
+rewrite_by_lua
+access_by_lua
+content_by_lua
+header_filter_by_lua
+body_filter_by_lua
+log_by_lua
+```
+
+set_by_lua: 流程分支处理判断变量初始化
+rewrite_by_lua: 转发、重定向、缓存等功能(例如特定请求代理到外网)
+access_by_lua: IP 准入、接口权限等情况集中处理(例如配合 iptable 完成简单防火墙) content_by_lua: 内容生成
+header_filter_by_lua: 应答 HTTP 过滤处理(例如添加头部信息)
+body_filter_by_lua: 应答 BODY 过滤处理(例如完成应答内容统一成大写)
+log_by_lua: 会话完成后本地异步完成日志记录(日志可以记录在本地,还可以同步到其他机器)
+
+实际上我们只使用其中一个阶段 content_by_lua,也可以完成所有的处理。但这样做,会让 我们的代码比较臃肿,越到后期越发难以维护。把我们的逻辑放在不同阶段,分工明确,代码独立,后期发力可以有很多有意思的玩法。举一个例子,如果在最开始的开发中,使用的是 http 明文协议,后面需要修改为 aes 加密协 议,利用不同的执行阶段,我们可以非常简单的实现:
+```lua
+-- 明文协议版本 
+location /mixed {
+    content_by_lua '...';
+}
+
+-- 加密协议版本
+location /mixed {
+    access_by_lua '...';  -- 请求加密解码
+    content_by_lua '...';  -- 请求处理,不需要关心通信协议
+    body_filter_by_lua '...';  -- 应答加密编码
+}
+```
