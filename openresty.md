@@ -768,3 +768,57 @@ location /mixed {
     body_filter_by_lua '...';  -- 应答加密编码
 }
 ```
+
+- 在 OpenResty 里面选择使用库的时候,有一个基本的原则:尽量使用 OpenResty 的库函
+数,尽量不用 Lua 的库函数,因为 Lua 的库都是同步阻塞的。
+
+- FFI
+    + The FFI library allows calling external C functions and using C data structures from pure Lua code.
+
+```lua
+local ffi = require("ffi")
+if ffi.os == "Windows" then
+    print("windows")
+elseif ffi.os == "OSX" then
+    print("MAC OS X")
+else
+    print(ffi.os)
+end
+```
+
+```lua
+local ffi = require("ffi")
+ffi.cdef[[
+unsigned long compressBound(unsigned long sourceLen);
+int compress2(uint8_t *dest, unsigned long *destLen,
+          const uint8_t *source, unsigned long sourceLen, int level);
+int uncompress(uint8_t *dest, unsigned long *destLen,
+           const uint8_t *source, unsigned long sourceLen);
+]]
+local zlib = ffi.load(ffi.os == "Windows" and "zlib1" or "z")
+
+local function compress(txt)
+  local n = zlib.compressBound(#txt)
+  local buf = ffi.new("uint8_t[?]", n)
+  local buflen = ffi.new("unsigned long[1]", n)
+  local res = zlib.compress2(buf, buflen, txt, #txt, 9)
+  assert(res == 0)
+  return ffi.string(buf, buflen[0])
+end
+
+local function uncompress(comp, n)
+  local buf = ffi.new("uint8_t[?]", n)
+  local buflen = ffi.new("unsigned long[1]", n)
+  local res = zlib.uncompress(buf, buflen, comp, #comp)
+  assert(res == 0)
+  return ffi.string(buf, buflen[0])
+end
+
+-- Simple test code.
+local txt = string.rep("abcd", 1000)
+print("Uncompressed size: ", #txt)
+local c = compress(txt)
+print("Compressed size: ", #c)
+local txt2 = uncompress(c, #txt)
+assert(txt2 == txt)
+```
