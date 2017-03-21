@@ -822,3 +822,8 @@ print("Compressed size: ", #c)
 local txt2 = uncompress(c, #txt)
 assert(txt2 == txt)
 ```
+
+- ngx_lua 的三种变量范围
+     + 进程间:所有 Nginx 的工作进程共享变量,使用指令 lua_shared_dict 定义, ngx.shared.DICT 的实现是采用红黑树实现,当申请的缓存被占用完后如果有新数据需要存储 则采用 LRU 算法淘汰掉“多余”数据。
+     + 进程内: Lua 源码中声明为全局变量,就是声明变量的时候不使用 local 关键字,这样的变量在同一个进程内的所有请求都是共享的. 关于进程的变量,有两个前提条件,一是 ngx_lua 使用 LuaJIT 编译,二是声明全局变量的模块是 require 引用。LuaJIT 会缓存模块中的全局变量. **建议不要使用模块中的全局变量，最好使用 ngx.ctx 或 shared dict 替代**
+     + 每个请求: Lua 源码中声明变量的时候使用 local 关键字,和 ngx.ctx 类似,变量的生命周期只存在同一个请求中
