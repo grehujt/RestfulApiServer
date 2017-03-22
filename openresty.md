@@ -827,3 +827,31 @@ assert(txt2 == txt)
      + 进程间:所有 Nginx 的工作进程共享变量,使用指令 lua_shared_dict 定义, ngx.shared.DICT 的实现是采用红黑树实现,当申请的缓存被占用完后如果有新数据需要存储 则采用 LRU 算法淘汰掉“多余”数据。
      + 进程内: Lua 源码中声明为全局变量,就是声明变量的时候不使用 local 关键字,这样的变量在同一个进程内的所有请求都是共享的. 关于进程的变量,有两个前提条件,一是 ngx_lua 使用 LuaJIT 编译,二是声明全局变量的模块是 require 引用。LuaJIT 会缓存模块中的全局变量. **建议不要使用模块中的全局变量，最好使用 ngx.ctx 或 shared dict 替代**
      + 每个请求: Lua 源码中声明变量的时候使用 local 关键字,和 ngx.ctx 类似,变量的生命周期只存在同一个请求中
+
+- 如何引用第三方 resty 库
+    + OpenResty 引用第三方 resty 库非常简单,只需要将相应的文件拷贝到 resty 目录下即可。
+    + 我们以 resty.http ( pintsized/lua-resty-http) 库为例。只要将 lua-resty-http/lib/resty/ 目录下的 http.lua 和 http_headers.lua 两个文件拷贝到 /usr/local/openresty/lualib/resty 目录下即可(假设你的 OpenResty 安装目录为 /usr/local/openresty )。
+
+    验证代码如下:
+
+    ```lua
+    server {
+        listen       8080 default_server;
+        server_name  _;
+        resolver 8.8.8.8;
+        location /google {
+            content_by_lua_block {
+                local http = require "resty.http"
+                local httpc = http.new()
+                local res, err = httpc:request_uri("http://www.google.com")
+                if res.status == ngx.HTTP_OK then
+                    ngx.say(res.body)
+                else
+                    ngx.exit(res.status)
+                end
+            }
+        }
+    }
+    ```
+
+    + 访问 http://127.0.0.1:8080/google, 如果出现的是google的首页,说明你配置成功了。当然这里也可以自定义 lua_package_path 指定 Lua 的查找路径,这样就可以把第三方代码放到相应的位置下,这么做更加方便归类文件,明确什么类型的文件放到什么地方(比如: 公共文件、业务文件)。
