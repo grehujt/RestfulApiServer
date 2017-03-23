@@ -28,3 +28,8 @@ services:
       - MYSQL_PASSWORD=20lbsuserpass17  # make sure sync with ngx/lua/dbinfo.lua
       - MYSQL_ROOT_PASSWORD=20rootpass17 # make sure sync with init.sh
     restart: always
+
+  redis:
+    image: redis
+    network_mode: host
+    restart: always
