@@ -855,3 +855,32 @@ assert(txt2 == txt)
     ```
 
     + 访问 http://127.0.0.1:8080/google, 如果出现的是google的首页,说明你配置成功了。当然这里也可以自定义 lua_package_path 指定 Lua 的查找路径,这样就可以把第三方代码放到相应的位置下,这么做更加方便归类文件,明确什么类型的文件放到什么地方(比如: 公共文件、业务文件)。
+
+- cosocket example
+    + 同步: 做完一件事再去做另一件; 异步:同时做多件事情,某个事情有结果了再去处理
+    + 非阻塞: 有结果我就带走, 没结果我就空手而回; 阻塞:不等到想要的结果我就不走了
+    + 全双工
+```lua
+location /test {
+    resolver 8.8.8.8;
+    content_by_lua_block {
+        local sock = ngx.socket.tcp()
+        local ok, err = sock:connect("www.google.com", 80)
+        if not ok then
+            ngx.say("failed to connect to google: ", err)
+        return end
+        local req_data = "GET / HTTP/1.1\r\nHost: www.google.com\r\n\r\n"
+        local bytes, err = sock:send(req_data)
+        if err then
+            ngx.say("failed to send to google: ", err)
+        return end
+        local data, err, partial = sock:receive()
+        if err then
+            ngx.say("failed to recieve to google: ", err)
+        return end
+        sock:close()
+        ngx.say("successfully talk to google! response first line: ", data)
+    }
+}
+ 
+```
